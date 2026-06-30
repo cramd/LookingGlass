@@ -585,7 +585,7 @@ Crucial Instructions:
 3. Strict Markdown: Format your output in clean, structured, and readable Markdown. Use code blocks for commands, bold highlights, and blockquotes for cautions. Keep sections concise.`;
 
     const model = genAI.getGenerativeModel({
-      model: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-3.5-flash',
       systemInstruction: systemInstruction,
       generationConfig: {
         maxOutputTokens: 1024, // Control output costs
