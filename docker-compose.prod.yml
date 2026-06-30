@@ -7,6 +7,7 @@ version: "3.8"
 
 services:
   backend:
+    image: ${DOCKER_USER:-cramd}/${REPO:-lookingglass}-backend:${TAG:-latest}
     build:
       context: ./backend
       dockerfile: Dockerfile
@@ -23,7 +24,7 @@ services:
       - VICTORIALOGS_URL=${VICTORIALOGS_URL}
       - VMALERT_URL=${VMALERT_URL}
       - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-3.5-flash}
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
       interval: 30s
@@ -31,6 +32,7 @@ services:
       retries: 3
 
   frontend:
+    image: ${DOCKER_USER:-cramd}/${REPO:-lookingglass}-frontend:${TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
