@@ -36,7 +36,23 @@ export const ENV_COLOR_CLASSES: Record<string, { bg: string; border: string; tex
 export function loadEnvironments(): Environment[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    let raw = localStorage.getItem(STORAGE_KEY);
+    
+    // Auto-migrate from legacy "proservability" keys if the new key is empty
+    if (!raw) {
+      const legacyRaw = localStorage.getItem('proservability.environments');
+      if (legacyRaw) {
+        raw = legacyRaw;
+        localStorage.setItem(STORAGE_KEY, raw);
+        
+        // Migrate activeEnvId as well
+        const legacyActive = localStorage.getItem('proservability.activeEnvId');
+        if (legacyActive && !localStorage.getItem('lookingglass.activeEnvId')) {
+          localStorage.setItem('lookingglass.activeEnvId', legacyActive);
+        }
+      }
+    }
+    
     return raw ? (JSON.parse(raw) as Environment[]) : [];
   } catch {
     return [];
