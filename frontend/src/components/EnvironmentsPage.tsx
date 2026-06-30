@@ -217,15 +217,40 @@ function EnvForm({
   );
 }
 
-export default function EnvironmentsPage({ availableHosts }: EnvironmentsPageProps) {
+export default function EnvironmentsPage({ availableHosts: propHosts }: EnvironmentsPageProps) {
   const [envs, setEnvs] = useState<Environment[]>([]);
   const [creating, setCreating] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const { availableGuests } = useEnv();
+  const { availableGuests, setAvailableGuests, availableHosts, setAvailableHosts } = useEnv();
+
+  // Use context hosts if available, otherwise propHosts
+  const activeHosts = availableHosts.length > 0 ? availableHosts : propHosts;
 
   useEffect(() => {
     setEnvs(loadEnvironments());
-  }, []);
+    
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    
+    // Fallback: If guests aren't loaded yet by the dashboard, fetch them directly
+    if (availableGuests.length === 0) {
+      fetch(`${apiUrl}/api/v1/metrics/guests`)
+        .then(res => res.json())
+        .then(json => {
+          if (json.guests) setAvailableGuests(json.guests);
+        })
+        .catch(err => console.error('Failed to fetch guests fallback:', err));
+    }
+
+    // Fallback: If hosts aren't loaded yet by the dashboard, fetch them directly
+    if (activeHosts.length === 0) {
+      fetch(`${apiUrl}/api/v1/metrics/summary?range=1h`)
+        .then(res => res.json())
+        .then(json => {
+          if (json.metadata?.hosts) setAvailableHosts(json.metadata.hosts);
+        })
+        .catch(err => console.error('Failed to fetch hosts fallback:', err));
+    }
+  }, [availableGuests.length, activeHosts.length, setAvailableGuests, setAvailableHosts]);
 
   const persist = (next: Environment[]) => {
     setEnvs(next);
@@ -288,7 +313,7 @@ export default function EnvironmentsPage({ availableHosts }: EnvironmentsPagePro
               <EnvForm
                 key={env.id}
                 initial={{ name: env.name, color: env.color, hostnames: env.hostnames, guests: env.guests || [] }}
-                availableHosts={availableHosts}
+                availableHosts={activeHosts}
                 onSave={f => handleEdit(env.id, f)}
                 onCancel={() => setEditingId(null)}
               />
@@ -335,7 +360,7 @@ export default function EnvironmentsPage({ availableHosts }: EnvironmentsPagePro
         {creating ? (
           <EnvForm
             initial={EMPTY_FORM}
-            availableHosts={availableHosts}
+            availableHosts={activeHosts}
             onSave={handleCreate}
             onCancel={() => setCreating(false)}
           />
