@@ -2,13 +2,18 @@
 
 import { getApiUrl } from '@/lib/config';
 import React, { useRef, useEffect, useState } from 'react';
-import { Sparkles, X, AlertCircle, RefreshCw, BookOpen, ExternalLink, Terminal } from 'lucide-react';
+import { Sparkles, X, AlertCircle, RefreshCw, BookOpen, ExternalLink, Terminal, Send } from 'lucide-react';
 
 interface AskLookingGlassModalProps {
   isOpen: boolean;
   onClose: () => void;
   contextType: 'log' | 'alert' | 'guest';
   payload: any;
+}
+
+interface Message {
+  role: 'user' | 'model';
+  text: string;
 }
 
 export default function AskLookingGlassModal({
@@ -18,23 +23,49 @@ export default function AskLookingGlassModal({
   payload,
 }: AskLookingGlassModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [answer, setAnswer] = useState<string>('');
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [input, setInput] = useState('');
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
 
   const apiUrl = getApiUrl();
 
-  const fetchAnalysis = async () => {
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, loading, error]);
+
+  const fetchAnalysis = async (userMessage?: string) => {
     setLoading(true);
     setError(null);
     setRetryAfter(null);
+    
     try {
+      const currentHistory = [...messages];
+      if (userMessage) {
+        currentHistory.push({ role: 'user', text: userMessage });
+        setMessages(currentHistory);
+      }
+
+      const body = {
+        contextType,
+        payload,
+        message: userMessage,
+        history: userMessage ? messages : undefined,
+      };
+
       const response = await fetch(`${apiUrl}/api/v1/ask-looking-glass`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contextType, payload }),
+        body: JSON.stringify(body),
       });
+
       if (!response.ok) {
         const errData = await response.json();
         if (response.status === 429) {
@@ -44,11 +75,18 @@ export default function AskLookingGlassModal({
         throw new Error(errData.error || 'Failed to fetch analysis from Looking Glass.');
       }
       const data = await response.json();
-      setAnswer(data.answer);
+      setMessages([...currentHistory, { role: 'model', text: data.answer }]);
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSend = () => {
+    if (input.trim() && !loading) {
+      fetchAnalysis(input);
+      setInput('');
     }
   };
 
@@ -57,7 +95,8 @@ export default function AskLookingGlassModal({
     if (!dialog) return;
 
     if (isOpen) {
-      setAnswer('');
+      setMessages([]);
+      setInput('');
       setError(null);
       setRetryAfter(null);
       dialog.showModal();
@@ -86,17 +125,12 @@ export default function AskLookingGlassModal({
     const dialog = dialogRef.current;
     if (!dialog) return;
 
-    const handleClose = () => {
-      onClose();
-    };
-
+    const handleClose = () => onClose();
     dialog.addEventListener('close', handleClose);
-    return () => {
-      dialog.removeEventListener('close', handleClose);
-    };
+    return () => dialog.removeEventListener('close', handleClose);
   }, [onClose]);
 
-  // Fallback backdrop click for browsers without closedby support
+  // Fallback backdrop click
   useEffect(() => {
     const dialog = dialogRef.current;
     if (!dialog || !isOpen) return;
@@ -118,9 +152,7 @@ export default function AskLookingGlassModal({
       };
 
       dialog.addEventListener('click', handleBackdropClick);
-      return () => {
-        dialog.removeEventListener('click', handleBackdropClick);
-      };
+      return () => dialog.removeEventListener('click', handleBackdropClick);
     }
   }, [isOpen]);
 
@@ -296,105 +328,120 @@ export default function AskLookingGlassModal({
   return (
     <dialog
       ref={dialogRef}
-      className="p-0 border border-zinc-800 bg-zinc-950/95 backdrop-blur-xl rounded-2xl max-w-2xl w-[90vw] md:w-full max-h-[85vh] focus:outline-none overflow-hidden shadow-2xl shadow-black/80"
+      className="p-0 border border-zinc-800 bg-zinc-950/95 backdrop-blur-xl rounded-2xl max-w-2xl w-[90vw] md:w-full h-[85vh] max-h-[85vh] flex flex-col focus:outline-none overflow-hidden shadow-2xl shadow-black/80"
       {...({ closedby: 'any' } as any)}
     >
-      <div className="flex flex-col h-full max-h-[85vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-zinc-900 border-b border-zinc-800/80 shrink-0">
-          <div className="flex items-center gap-2.5">
-            <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-              <Sparkles className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <h2 className="text-sm font-semibold text-zinc-100">Ask the Looking Glass</h2>
-              <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Gemini Troubleshooting Assistant</p>
-            </div>
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 bg-zinc-900 border-b border-zinc-800/80 shrink-0">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+            <Sparkles className="w-5 h-5 animate-pulse" />
           </div>
-          <button
-            onClick={() => dialogRef.current?.close()}
-            className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
-            title="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div>
+            <h2 className="text-sm font-semibold text-zinc-100">Ask the Looking Glass</h2>
+            <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-medium">Gemini Troubleshooting Assistant</p>
+          </div>
+        </div>
+        <button
+          onClick={() => dialogRef.current?.close()}
+          className="p-1.5 rounded-lg hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+          title="Close"
+        >
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Scrollable Chat Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Target context badge */}
+        <div className="px-4 py-2 bg-zinc-900/50 border border-zinc-800/40 rounded-xl flex items-center justify-between text-xs sticky top-0 z-10 backdrop-blur-md">
+          <span className="text-zinc-500 font-medium">Context:</span>
+          <span className="text-zinc-300 font-mono truncate max-w-[70%]">{getContextSummary()}</span>
         </div>
 
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-5">
-          {/* Target context badge */}
-          <div className="px-4 py-2 bg-zinc-900/50 border border-zinc-800/40 rounded-xl flex items-center justify-between text-xs">
-            <span className="text-zinc-500 font-medium">Context:</span>
-            <span className="text-zinc-300 font-mono truncate max-w-[70%]">{getContextSummary()}</span>
-          </div>
-
-          {loading ? (
-            <div className="flex flex-col items-center justify-center py-16 space-y-4">
-              <div className="relative w-16 h-16 flex items-center justify-center">
-                <div className="absolute inset-0 rounded-full border-2 border-indigo-500/20" />
-                <div className="absolute inset-0 rounded-full border-t-2 border-indigo-400 animate-spin" style={{ animationDuration: '0.8s' }} />
-                <div className="absolute w-8 h-8 rounded-full bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 animate-pulse">
-                  <Sparkles className="w-4 h-4" />
-                </div>
-              </div>
-              <div className="text-center space-y-1">
-                <p className="text-sm text-zinc-300 font-medium animate-pulse">Looking into the Glass...</p>
-                <p className="text-xs text-zinc-500">Consulting official documentation & system states</p>
-              </div>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center space-y-4">
-              <div className={`p-3 rounded-full border ${retryAfter !== undefined && retryAfter !== null ? 'bg-amber-500/10 border-amber-500/25 text-amber-400' : 'bg-red-500/10 border-red-500/25 text-red-400'}`}>
-                <AlertCircle className="w-8 h-8" />
-              </div>
-              <div className="space-y-1 max-w-sm">
-                <p className="text-sm font-semibold text-zinc-200">Failed to analyze context</p>
-                <p className="text-xs text-zinc-400 leading-relaxed">{error}</p>
-              </div>
-              {retryAfter !== null ? (
-                <div className="flex flex-col items-center gap-2">
-                  <p className="text-xs text-amber-400/80">Retrying in <span className="font-mono font-bold">{retryAfter}s</span>…</p>
-                  <button
-                    onClick={fetchAnalysis}
-                    disabled={retryAfter > 0}
-                    className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-200 rounded-lg transition-colors border border-zinc-700"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Try Again
-                  </button>
-                </div>
+        {/* Messages */}
+        {messages.map((msg, idx) => (
+          <div key={idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-5 py-4 ${msg.role === 'user' ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20' : 'bg-zinc-900 border border-zinc-800/80 text-zinc-300 shadow-sm shadow-black/40'}`}>
+              {msg.role === 'user' ? (
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.text}</p>
               ) : (
+                <div className="prose prose-invert max-w-none text-zinc-300">
+                  {parseBlocks(msg.text)}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+
+        {/* Loading Indicator */}
+        {loading && (
+          <div className="flex items-start">
+            <div className="bg-zinc-900 border border-zinc-800/80 rounded-2xl px-5 py-4 flex items-center gap-3">
+              <div className="flex gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '0ms' }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '150ms' }} />
+                <div className="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+              <span className="text-xs text-zinc-400 font-medium tracking-wide animate-pulse">Consulting the Glass...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Error Display */}
+        {error && (
+          <div className="flex flex-col items-center justify-center py-6 text-center space-y-4">
+            <div className={`p-3 rounded-full border ${retryAfter !== undefined && retryAfter !== null ? 'bg-amber-500/10 border-amber-500/25 text-amber-400' : 'bg-red-500/10 border-red-500/25 text-red-400'}`}>
+              <AlertCircle className="w-6 h-6" />
+            </div>
+            <div className="space-y-1 max-w-sm">
+              <p className="text-sm font-semibold text-zinc-200">Failed to analyze context</p>
+              <p className="text-xs text-zinc-400 leading-relaxed">{error}</p>
+            </div>
+            {retryAfter !== null ? (
+              <div className="flex flex-col items-center gap-2">
+                <p className="text-xs text-amber-400/80">Retrying in <span className="font-mono font-bold">{retryAfter}s</span>…</p>
                 <button
-                  onClick={fetchAnalysis}
-                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition-colors border border-zinc-700"
+                  onClick={() => fetchAnalysis(input || undefined)}
+                  disabled={retryAfter > 0}
+                  className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 disabled:opacity-40 disabled:cursor-not-allowed text-zinc-200 rounded-lg transition-colors border border-zinc-700"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
                   Try Again
                 </button>
-              )}
-            </div>
-          ) : (
-            <div className="prose prose-invert max-w-none text-zinc-300">
-              {answer ? parseBlocks(answer) : (
-                <p className="text-xs text-zinc-500 italic">No troubleshooting guidance returned.</p>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-4 bg-zinc-900 border-t border-zinc-800/80 flex items-center justify-between shrink-0 text-xs text-zinc-500">
-          <div className="flex items-center gap-1">
-            <BookOpen className="w-3.5 h-3.5 text-zinc-500" />
-            <span>Stepped investigation approach</span>
+              </div>
+            ) : (
+              <button
+                onClick={() => fetchAnalysis(input || undefined)}
+                className="flex items-center gap-1.5 px-4 py-2 text-xs font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-200 rounded-lg transition-colors border border-zinc-700"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Try Again
+              </button>
+            )}
           </div>
-          <button
-            onClick={() => dialogRef.current?.close()}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium rounded-lg transition-colors shadow-lg shadow-indigo-600/20"
-          >
-            Acknowledge
-          </button>
-        </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Footer Chat Input */}
+      <div className="px-6 py-4 bg-zinc-900 border-t border-zinc-800/80 flex items-center gap-3 shrink-0">
+        <input 
+          type="text" 
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') handleSend(); }}
+          placeholder="Ask a follow-up question..."
+          className="flex-1 bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-sm text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-indigo-500 transition-shadow"
+          disabled={loading}
+        />
+        <button
+          onClick={handleSend}
+          disabled={!input.trim() || loading}
+          className="p-3 rounded-xl bg-indigo-600 text-white disabled:opacity-50 disabled:bg-zinc-800 disabled:text-zinc-500 hover:bg-indigo-500 transition-colors"
+        >
+          <Send className="w-4 h-4" />
+        </button>
       </div>
     </dialog>
   );

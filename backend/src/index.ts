@@ -549,7 +549,7 @@ function hashContext(contextType: string, payload: unknown): string {
 // POST /api/v1/ask-looking-glass — query Gemini with context for troubleshooting steps
 app.post('/api/v1/ask-looking-glass', async (req, res) => {
   try {
-    const { contextType, payload } = req.body;
+    const { contextType, payload, message, history } = req.body;
     const apiKey = process.env.GEMINI_API_KEY;
 
     if (!apiKey) {
@@ -565,10 +565,11 @@ app.post('/api/v1/ask-looking-glass', async (req, res) => {
       }
     }
 
-    // Return cached answer if we have a fresh one for this exact context
+    // Return cached initial answer if we have a fresh one for this exact context
+    // Bypass cache if this is a follow-up chat message
     const cacheKey = hashContext(contextType, payload);
     const cached = askCache.get(cacheKey);
-    if (cached && cached.expiresAt > Date.now()) {
+    if (!message && cached && cached.expiresAt > Date.now()) {
       return res.json({ answer: cached.answer, cached: true });
     }
 
@@ -611,14 +612,29 @@ ${JSON.stringify(payload, null, 2)}`;
 ${JSON.stringify(payload, null, 2)}`;
     }
 
-    const result = await model.generateContent(userPrompt);
-    const response = await result.response;
-    const text = response.text();
+    if (message && history) {
+      // Map frontend history to Gemini's expected format
+      const formattedHistory = history.map((msg: any) => ({
+        role: msg.role,
+        parts: [{ text: msg.text }],
+      }));
+      
+      const chat = model.startChat({ history: formattedHistory });
+      const result = await chat.sendMessage(message);
+      const response = await result.response;
+      const text = response.text();
+      
+      return res.json({ answer: text });
+    } else {
+      const result = await model.generateContent(userPrompt);
+      const response = await result.response;
+      const text = response.text();
 
-    // Cache the answer before returning
-    askCache.set(cacheKey, { answer: text, expiresAt: Date.now() + ASK_CACHE_TTL_MS });
+      // Cache the initial answer before returning
+      askCache.set(cacheKey, { answer: text, expiresAt: Date.now() + ASK_CACHE_TTL_MS });
 
-    res.json({ answer: text });
+      res.json({ answer: text });
+    }
   } catch (error: any) {
     console.error('Ask Looking Glass route error:', error);
     const msg: string = error.message || 'Internal Server Error';
