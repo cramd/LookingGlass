@@ -619,6 +619,26 @@ ${JSON.stringify(payload, null, 2)}`;
         parts: [{ text: msg.text }],
       }));
       
+      // Fix: Gemini chat history must start with a 'user' message. 
+      // If the frontend history starts with the 'model' response, prepend the initial prompt context.
+      if (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+        let initialPrompt = '';
+        if (contextType === 'alert') {
+          initialPrompt = `I received this active alert from vmalert/Alertmanager. Let's troubleshoot it step-by-step.\nAlert Details:\n${JSON.stringify(payload, null, 2)}`;
+        } else if (contextType === 'log') {
+          initialPrompt = `I found this log line in the system logs. Let's analyze it and figure out the cause.\nLog Content:\n${JSON.stringify(payload, null, 2)}`;
+        } else if (contextType === 'guest') {
+          initialPrompt = `I am looking at this VM/LXC container's resource usage. Let's analyze if there's an anomaly or issue.\nGuest Stats:\n${JSON.stringify(payload, null, 2)}`;
+        } else {
+          initialPrompt = `Help me troubleshoot this server monitoring context:\n${JSON.stringify(payload, null, 2)}`;
+        }
+        
+        formattedHistory.unshift({
+          role: 'user',
+          parts: [{ text: initialPrompt }]
+        });
+      }
+      
       const chat = model.startChat({ history: formattedHistory });
       const result = await chat.sendMessage(message);
       const response = await result.response;
