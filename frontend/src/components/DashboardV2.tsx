@@ -21,7 +21,7 @@ interface DashboardMetadata {
 }
 
 export default function DashboardV2() {
-  const { activeEnv, setAvailableHosts } = useEnv();
+  const { activeEnv, setAvailableHosts, setAvailableGuests } = useEnv();
   const [metrics, setMetrics] = useState<Record<string, MetricPoint[]>>({});
   const [metadata, setMetadata] = useState<DashboardMetadata | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,13 +31,21 @@ export default function DashboardV2() {
 
     async function fetchAll() {
       try {
-        const summaryRes = await fetch(`${apiUrl}/api/v1/metrics/summary?range=1h`);
+        const [summaryRes, guestsRes] = await Promise.all([
+          fetch(`${apiUrl}/api/v1/metrics/summary?range=1h`),
+          fetch(`${apiUrl}/api/v1/metrics/guests`),
+        ]);
         if (summaryRes.ok) {
           const json = await summaryRes.json();
           setMetrics(json.data || {});
           setMetadata(json.metadata || null);
           const hosts: string[] = json.metadata?.hosts || [];
           setAvailableHosts(hosts);
+        }
+        if (guestsRes.ok) {
+          const json = await guestsRes.json();
+          const fetchedGuests = json.guests || [];
+          setAvailableGuests(fetchedGuests);
         }
       } catch (err) {
         console.error('Failed to fetch metrics:', err);
