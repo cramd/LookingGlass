@@ -1,0 +1,26 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: []
+  group_wait: 5m
+  group_interval: 12h
+  repeat_interval: 12h
+  receiver: webhook
+
+receivers:
+  - name: webhook
+    slack_configs:
+      - api_url: "http://example.com/webhook"
+        send_resolved: true
+        # Payload is standard alertmanager webhook format — works with:
+        #   Slack:   use a Slack incoming webhook URL
+        #   Discord: append /slack to your Discord webhook URL for compatibility
+        #   Generic: any HTTP endpoint that accepts POST JSON
+
+inhibit_rules:
+  - source_match:
+      severity: critical
+    target_match:
+      severity: warning
+    equal: ['alertname', 'host']

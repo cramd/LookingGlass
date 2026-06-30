@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Dialog entry and exit transitions using top-layer animation properties */
+dialog {
+  opacity: 0;
+  transform: scale(0.95);
+  transition-property: opacity, transform, display, overlay;
+  transition-duration: 0.25s;
+  transition-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  transition-behavior: allow-discrete;
+}
+
+dialog[open] {
+  opacity: 1;
+  transform: scale(1);
+
+  @starting-style {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+}
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0);
+  backdrop-filter: blur(0px);
+  transition:
+    display 0.25s allow-discrete,
+    overlay 0.25s allow-discrete,
+    background-color 0.25s ease-out,
+    backdrop-filter 0.25s ease-out;
+}
+
+dialog[open]::backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+
+  @starting-style {
+    background-color: rgba(0, 0, 0, 0);
+    backdrop-filter: blur(0px);
+  }
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  dialog {
+    transform: none;
+    transition-duration: 0.1s;
+  }
+  @starting-style {
+    dialog[open] {
+      transform: none;
+    }
+  }
+}
+
+/* V2 Widget Overrides */
+.v2-widget-override > div {
+  background-color: #1a1a24 !important;
+  border-color: #2a2a3b !important;
+  box-shadow: none !important;
+}
+.v2-widget-override h3 {
+  color: #8f8f9d !important;
+  font-size: 11px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+}

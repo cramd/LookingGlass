@@ -1,0 +1,18 @@
+---
+# Fix broken rsyslog forward on PVE nodes.
+# Removes the omfwd line that targets "192.168.0.100:9428:6666" (invalid hostname).
+- hosts: pve_nodes
+  become: true
+  tasks:
+    - name: Deploy corrected 50-shiftmon.conf (imfile only, no duplicate omfwd)
+      ansible.builtin.copy:
+        src: files/50-shiftmon.conf
+        dest: /etc/rsyslog.d/50-shiftmon.conf
+        mode: "0644"
+      notify: Restart rsyslog
+
+  handlers:
+    - name: Restart rsyslog
+      ansible.builtin.service:
+        name: rsyslog
+        state: restarted

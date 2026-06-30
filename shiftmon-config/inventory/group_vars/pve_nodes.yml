@@ -1,0 +1,17 @@
+# Telegraf output — push metrics and logs to the ShiftMon LXC
+victoriametrics_url: "http://192.168.0.100:8428"
+victorialogs_url: "http://192.168.0.100:9428"
+
+# Token is blank since we run VictoriaMetrics without auth
+victoriametrics_token: ""
+victorialogs_token: ""
+
+# Ship syslog + journal logs from PVE hosts to VictoriaLogs
+syslog: rsyslog
+remote_syslog: false
+
+# Do not auto-instrument services we don't want Telegraf touching on PVE hosts
+do_not_instrument:
+  - docker
+  - mysql
+  - openldap

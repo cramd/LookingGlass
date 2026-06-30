@@ -1,0 +1,12 @@
+all:
+  children:
+    pve_nodes:
+      hosts:
+        pve1:
+          ansible_host: 192.168.0.55
+          ansible_user: root
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+        pve2:
+          ansible_host: 192.168.0.90
+          ansible_user: root
+          ansible_ssh_private_key_file: ~/.ssh/id_ed25519

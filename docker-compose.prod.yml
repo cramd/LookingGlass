@@ -1,0 +1,52 @@
+version: "3.8"
+
+# Production compose — builds optimized images, no source volume mounts.
+# Usage:
+#   cp .env.example .env   # fill in VM_CLOUD_URL, VM_CLOUD_TOKEN, SAAS_USER_TIER
+#   docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: production
+    restart: unless-stopped
+    ports:
+      - "5001:5000"
+    environment:
+      - NODE_ENV=production
+      - PORT=5000
+      - VM_CLOUD_URL=${VM_CLOUD_URL}
+      - VM_CLOUD_TOKEN=${VM_CLOUD_TOKEN}
+      - SAAS_USER_TIER=${SAAS_USER_TIER:-free}
+      - VICTORIALOGS_URL=${VICTORIALOGS_URL}
+      - VMALERT_URL=${VMALERT_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      target: production
+      # NEXT_PUBLIC_* vars must be passed as build args — they are baked into
+      # the static JS bundle at `npm run build` time, not injected at runtime.
+      args:
+        - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:5001}
+        - NEXT_PUBLIC_VICTORIALOGS_URL=${VICTORIALOGS_URL:-http://192.168.0.100:9428}
+        - NEXT_PUBLIC_GRAFANA_URL=${GRAFANA_URL:-http://192.168.0.100:3001}
+        - NEXT_PUBLIC_VM_DIRECT_URL=${VM_DIRECT_URL:-http://192.168.0.100:8428}
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    depends_on:
+      backend:
+        condition: service_healthy

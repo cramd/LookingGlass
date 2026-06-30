@@ -1,0 +1,29 @@
+# ─── ShiftMon core ────────────────────────────────────────────────────────────
+shiftmon_data_dir: /opt/shiftmon
+
+# ─── vmauth credentials ───────────────────────────────────────────────────────
+# This becomes your VM_CLOUD_TOKEN in LookingGlass's .env
+shiftmon_vmauth_password: "CHANGE_ME_strong_password"
+
+# ─── Proxmox cluster nodes ────────────────────────────────────────────────────
+# Both PVE hosts — ShiftMon will create Grafana dashboards for each
+shiftmon_proxmox_enabled: true
+shiftmon_proxmox_hosts:
+  - host: 192.168.0.55    # PVE1 — light box, don't over-instrument
+    port: 8006
+  - host: 192.168.0.90    # PVE2 — beefier box, hosts the ShiftMon LXC
+    port: 8006
+
+# ─── Grafana ─────────────────────────────────────────────────────────────────
+shiftmon_grafana_admin_user: admin
+shiftmon_grafana_admin_password: "CHANGE_ME_grafana_password"
+
+# ─── VictoriaMetrics retention ────────────────────────────────────────────────
+# How long to keep metrics (default 1 month)
+shiftmon_victoriametrics_retention: "1"
+
+# ─── Optional: VictoriaLogs (log aggregation) ─────────────────────────────────
+shiftmon_victorialogs_enabled: true
+
+# ─── Optional: vmanomaly (ML anomaly detection, requires license) ─────────────
+shiftmon_vmanomaly_enabled: false

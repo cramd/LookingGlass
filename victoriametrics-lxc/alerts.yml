@@ -1,0 +1,60 @@
+groups:
+  - name: proxmox-nodes
+    interval: 1m
+    rules:
+      - alert: NodeCpuHigh
+        expr: cpustat_cpu{object="nodes"} * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.host }}"
+          description: "Node {{ $labels.host }} CPU usage is {{ $value | printf \"%.1f\" }}% (threshold 85%)"
+
+      - alert: NodeMemHigh
+        expr: (memory_memused{object="nodes"} / memory_memtotal{object="nodes"}) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory on {{ $labels.host }}"
+          description: "Node {{ $labels.host }} memory usage is {{ $value | printf \"%.1f\" }}% (threshold 90%)"
+
+      - alert: NodeCpuCritical
+        expr: cpustat_cpu{object="nodes"} * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Critical CPU on {{ $labels.host }}"
+          description: "Node {{ $labels.host }} CPU usage is {{ $value | printf \"%.1f\" }}% — immediate attention required"
+
+  - name: proxmox-guests
+    interval: 1m
+    rules:
+      - alert: GuestCpuHigh
+        expr: system_cpu{object=~"qemu|lxc"} * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU on {{ $labels.host }}"
+          description: "{{ $labels.object }} {{ $labels.host }} (vmid {{ $labels.vmid }}) CPU is {{ $value | printf \"%.1f\" }}% on node {{ $labels.nodename }}"
+
+      - alert: GuestMemHigh
+        expr: (system_mem{object=~"qemu|lxc"} / system_maxmem{object=~"qemu|lxc"}) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory on {{ $labels.host }}"
+          description: "{{ $labels.object }} {{ $labels.host }} (vmid {{ $labels.vmid }}) memory is {{ $value | printf \"%.1f\" }}% on node {{ $labels.nodename }}"
+
+      - alert: GuestDown
+        expr: system_status{object=~"qemu|lxc"} != 1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Guest down: {{ $labels.host }}"
+          description: "{{ $labels.object }} {{ $labels.host }} (vmid {{ $labels.vmid }}) is not running on node {{ $labels.nodename }}"

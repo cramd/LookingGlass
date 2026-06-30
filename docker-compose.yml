@@ -1,0 +1,36 @@
+version: "3.8"
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5000"
+    environment:
+      - PORT=5000
+      - VM_CLOUD_URL=${VM_CLOUD_URL}
+      - VM_CLOUD_TOKEN=${VM_CLOUD_TOKEN}
+      - SAAS_USER_TIER=${SAAS_USER_TIER}
+      - VICTORIALOGS_URL=${VICTORIALOGS_URL}
+      - VMALERT_URL=${VMALERT_URL}
+      - ALERTMANAGER_URL=${ALERTMANAGER_URL}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-2.5-flash}
+    volumes:
+      - ./backend:/usr/src/app
+    command: npm run dev
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:5001
+      - NEXT_PUBLIC_VICTORIALOGS_URL=${VICTORIALOGS_URL:-http://192.168.0.100:9428}
+      - NEXT_PUBLIC_GRAFANA_URL=${GRAFANA_URL:-http://192.168.0.100:3001}
+      - NEXT_PUBLIC_VM_DIRECT_URL=${VM_DIRECT_URL:-http://192.168.0.100:8428}
+    volumes:
+      - ./frontend:/usr/src/app
+    command: npm run dev
