@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, ExternalLink, BarChart2, HardDrive, RefreshCw } from 'lucide-react';
 
@@ -48,7 +49,7 @@ function DiskBar({ usedBytes, freeBytes, label }: { usedBytes: number; freeBytes
 }
 
 export default function UpsellHook() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const apiUrl = getApiUrl();
   const grafanaUrl = process.env.NEXT_PUBLIC_GRAFANA_URL || 'http://192.168.0.100:3001';
   const vmDirectUrl = process.env.NEXT_PUBLIC_VM_DIRECT_URL || 'http://192.168.0.100:8428';
   const vlUrl = process.env.NEXT_PUBLIC_VICTORIALOGS_URL || 'http://192.168.0.100:9428';

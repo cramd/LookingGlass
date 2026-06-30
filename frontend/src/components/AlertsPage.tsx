@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useState, useEffect } from 'react';
 import { AlertTriangle, XCircle, CheckCircle2, Clock, BellOff, ChevronDown, Sparkles } from 'lucide-react';
 import { useEnv } from '@/app/page';
@@ -51,7 +52,7 @@ function StateBadge({ state }: { state: string }) {
 }
 
 function SilenceDropdown({ alert, onSilenced }: { alert: Alert; onSilenced: (id: string) => void }) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const apiUrl = getApiUrl();
   const [open, setOpen]       = useState(false);
   const [loading, setLoading] = useState(false);
   const [done, setDone]       = useState(false);
@@ -112,7 +113,7 @@ function SilenceDropdown({ alert, onSilenced }: { alert: Alert; onSilenced: (id:
 }
 
 export default function AlertsPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const apiUrl = getApiUrl();
   const { activeEnv } = useEnv();
   const [alerts, setAlerts]   = useState<Alert[]>([]);
   const [rules, setRules]     = useState<Rule[]>([]);

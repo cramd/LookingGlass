@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useEffect, useState } from 'react';
 import {
   PlusCircle, Pencil, Trash2, Check, X, Layers, Box, Server
@@ -229,7 +230,7 @@ export default function EnvironmentsPage({ availableHosts: propHosts }: Environm
   useEffect(() => {
     setEnvs(loadEnvironments());
     
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    const apiUrl = getApiUrl();
     
     // Fallback: If guests aren't loaded yet by the dashboard, fetch them directly
     if (availableGuests.length === 0) {

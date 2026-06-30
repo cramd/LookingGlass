@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useRef, useEffect, useState } from 'react';
 import { Sparkles, X, AlertCircle, RefreshCw, BookOpen, ExternalLink, Terminal } from 'lucide-react';
 
@@ -22,7 +23,7 @@ export default function AskLookingGlassModal({
   const [answer, setAnswer] = useState<string>('');
   const [retryAfter, setRetryAfter] = useState<number | null>(null);
 
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const apiUrl = getApiUrl();
 
   const fetchAnalysis = async () => {
     setLoading(true);

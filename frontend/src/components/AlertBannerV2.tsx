@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useEffect, useState } from 'react';
 import { AlertTriangle, X } from 'lucide-react';
 import AskLookingGlassModal from './AskLookingGlassModal';
@@ -23,7 +24,7 @@ export default function AlertBannerV2() {
   const [modalOpen, setModalOpen] = useState(false);
 
   useEffect(() => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+    const apiUrl = getApiUrl();
 
     async function fetchAlerts() {
       try {

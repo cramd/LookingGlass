@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ExternalLink, RefreshCw, Search, Wifi, Sparkles } from 'lucide-react';
 import { useEnv } from '@/app/page';
@@ -59,7 +60,7 @@ function buildVlUrl(node: string, timestamp: string): string {
 }
 
 export default function LogsPage() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const apiUrl = getApiUrl();
   const { activeEnv, availableHosts } = useEnv();
 
   const [logs, setLogs]         = useState<LogLine[]>([]);

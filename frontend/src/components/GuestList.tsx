@@ -1,5 +1,6 @@
 'use client';
 
+import { getApiUrl } from '@/lib/config';
 import React, { useState, useEffect } from 'react';
 import { Server, Box, ChevronDown, ChevronRight, HardDrive, Wifi, ExternalLink, ArrowUpDown, ArrowDown, ArrowUp, Sparkles } from 'lucide-react';
 import AskLookingGlassModal from './AskLookingGlassModal';
@@ -73,7 +74,7 @@ function buildVlUrl(node: string, timestamp: string): string {
 }
 
 function GuestDetailPanel({ guest }: { guest: Guest }) {
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+  const apiUrl = getApiUrl();
   const [detail, setDetail] = useState<GuestDetail | null>(null);
   const [logs, setLogs] = useState<LogLine[]>([]);
   const [loadingDetail, setLoadingDetail] = useState(true);
